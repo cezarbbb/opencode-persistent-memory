@@ -1,0 +1,27 @@
+{
+  "name": "opencode-persistent-memory",
+  "version": "0.1.0",
+  "description": "Persistent memory plugin for OpenCode — survives context compaction and cross sessions",
+  "main": "src/index.ts",
+  "type": "module",
+  "scripts": {
+    "build": "bun build src/index.ts --outdir dist --target bun",
+    "dev": "bun run src/index.ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "keywords": [
+    "opencode",
+    "plugin",
+    "memory",
+    "persistent"
+  ],
+  "license": "MIT",
+  "devDependencies": {
+    "@opencode-ai/plugin": "latest",
+    "@types/node": "^22.0.0",
+    "typescript": "^5.7.0"
+  },
+  "peerDependencies": {
+    "@opencode-ai/plugin": "latest"
+  }
+}
