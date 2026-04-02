@@ -28,6 +28,8 @@ npm install -g .
 }
 ```
 
+> **注意：** 字段名是 `plugin`（单数），不是 `plugins`。写成 `plugins` 会导致 OpenCode 无法启动。
+
 ### 第 3 步：将插件链接到 OpenCode 缓存目录
 
 OpenCode 从缓存目录（`~/.cache/opencode/node_modules/`）加载插件。在那里创建符号链接：
@@ -65,6 +67,7 @@ ls ~/.local/share/opencode/memory/
 | 插件未加载 | 未安装 Bun | 安装 Bun：`npm install -g bun` |
 | 日志中出现 `404 failed to install plugin` | 包未发布到 npm 仓库 | 在 `~/.cache/opencode/node_modules/` 创建符号链接（见第 3 步） |
 | 未创建记忆目录 | 插件未被 OpenCode 加载 | 使用 `opencode debug config --print-logs` 检查日志 |
+| 添加配置后 OpenCode 无法启动 | 配置字段名写错（`plugins` 而非 `plugin`） | 确保字段名为 `plugin`（单数） |
 
 ## 工作原理
 

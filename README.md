@@ -28,6 +28,8 @@ Add the plugin to your `opencode.json` (located at `~/.config/opencode/opencode.
 }
 ```
 
+> **Note:** The field name is `plugin` (singular), NOT `plugins`. Using `plugins` will cause OpenCode to fail to start.
+
 ### Step 3: Link the plugin into OpenCode's cache
 
 OpenCode loads plugins from its cache directory (`~/.cache/opencode/node_modules/`). Create a junction/symlink there:
@@ -65,6 +67,7 @@ You should see `MEMORY.md` and type subdirectories (`user/`, `feedback/`, `proje
 | Plugin not loading | Bun not installed | Install Bun: `npm install -g bun` |
 | `404 failed to install plugin` in logs | Package not on npm registry | Create symlink in `~/.cache/opencode/node_modules/` (see Step 3) |
 | No memory directory created | Plugin not loaded by OpenCode | Check logs with `opencode debug config --print-logs` |
+| OpenCode fails to start after adding config | Config field name typo (`plugins` instead of `plugin`) | Make sure the field is `plugin` (singular) in `opencode.json` |
 
 ## How It Works
 
