@@ -68,6 +68,36 @@ You should see `MEMORY.md` and type subdirectories (`user/`, `feedback/`, `proje
 | `404 failed to install plugin` in logs | Package not on npm registry | Create symlink in `~/.cache/opencode/node_modules/` (see Step 3) |
 | No memory directory created | Plugin not loaded by OpenCode | Check logs with `opencode debug config --print-logs` |
 | OpenCode fails to start after adding config | Config field name typo (`plugins` instead of `plugin`) | Make sure the field is `plugin` (singular) in `opencode.json` |
+| Auto-extraction not triggering | Not enough messages buffered | Need ≥ 6 messages before `session.idle` fires. Stop interacting for ~30s to trigger idle |
+| Auto-extraction triggers but 0 candidates | Message too short or no pattern match | Messages like "111" won't match. Use natural language with keywords like "remember", "不对", etc. |
+
+## Debug Mode
+
+Set the `OPENCODE_MEMORY_DEBUG` environment variable to enable debug logging:
+
+```bash
+OPENCODE_MEMORY_DEBUG=1 opencode
+```
+
+On Windows (PowerShell):
+
+```powershell
+$env:OPENCODE_MEMORY_DEBUG = "1"; opencode
+```
+
+Debug logs are written to `~/.local/share/opencode/memory/debug-events.log` and include:
+
+- All received event types
+- Message buffering (role, length, buffer size)
+- Role mapping (messageID → user/assistant)
+- Extraction lifecycle (idle triggers, candidates found, saves)
+- Errors in event handlers
+
+To view live logs:
+
+```bash
+tail -f ~/.local/share/opencode/memory/debug-events.log
+```
 
 ## How It Works
 
@@ -120,6 +150,19 @@ You should see `MEMORY.md` and type subdirectories (`user/`, `feedback/`, `proje
 | `memory_delete` | Delete an outdated memory |
 | `session_checkpoint` | Save session state (survives compaction) |
 
+## Auto-Extraction Patterns
+
+Layer 3 uses heuristic pattern matching to detect extractable content in user messages. Supports both English and Chinese:
+
+| Category | English Examples | Chinese Examples |
+|----------|-----------------|------------------|
+| **Correction** | "don't use X", "wrong approach", "use Y instead" | "不对", "别用", "请用X代替" |
+| **Explicit** | "remember that", "don't forget", "note that" | "请记住", "记住这个", "别忘了" |
+| **Profile** | "I'm a senior engineer", "my team uses K8s" | "我是工程师", "我擅长", "我们团队用" |
+| **Confirmation** | "yes exactly", "good job", "that's right" | "没错", "做得好", "这个方法很好" |
+
+Messages are buffered via `message.part.updated` events and extracted when `session.idle` fires with ≥ 6 buffered messages. Role inference uses `message.updated` events to build a messageID → role mapping.
+
 ## Hooks
 
 | Hook | Purpose |
@@ -127,8 +170,9 @@ You should see `MEMORY.md` and type subdirectories (`user/`, `feedback/`, `proje
 | `experimental.session.compacting` | Injects memory index + session notes into compaction context |
 | `experimental.chat.system.transform` | Injects memory availability hint into system prompt each LLM turn |
 | `event` (session.created) | Initializes memory directory |
-| `event` (session.idle) | Triggers automatic memory extraction |
-| `event` (message.updated) | Tracks messages for extraction buffer |
+| `event` (session.idle) | Triggers automatic memory extraction (when buffer ≥ 6) |
+| `event` (message.updated) | Builds messageID → role mapping for extraction |
+| `event` (message.part.updated) | Buffers TextPart content for extraction |
 
 ## AGENTS.md Integration
 

@@ -68,6 +68,36 @@ ls ~/.local/share/opencode/memory/
 | 日志中出现 `404 failed to install plugin` | 包未发布到 npm 仓库 | 在 `~/.cache/opencode/node_modules/` 创建符号链接（见第 3 步） |
 | 未创建记忆目录 | 插件未被 OpenCode 加载 | 使用 `opencode debug config --print-logs` 检查日志 |
 | 添加配置后 OpenCode 无法启动 | 配置字段名写错（`plugins` 而非 `plugin`） | 确保字段名为 `plugin`（单数） |
+| 自动提取未触发 | 缓冲消息不足 | 需要 ≥ 6 条消息后 `session.idle` 才会触发。停止操作约 30 秒触发 idle |
+| 自动提取触发但 0 候选 | 消息太短或无模式匹配 | "111" 之类的消息不会匹配。使用包含 "记住"、"不对" 等关键词的自然语言 |
+
+## Debug 模式
+
+设置 `OPENCODE_MEMORY_DEBUG` 环境变量启用调试日志：
+
+```bash
+OPENCODE_MEMORY_DEBUG=1 opencode
+```
+
+Windows (PowerShell)：
+
+```powershell
+$env:OPENCODE_MEMORY_DEBUG = "1"; opencode
+```
+
+调试日志写入 `~/.local/share/opencode/memory/debug-events.log`，包含：
+
+- 所有接收到的事件类型
+- 消息缓冲（角色、长度、buffer 大小）
+- 角色映射（messageID → user/assistant）
+- 提取生命周期（idle 触发、候选数量、保存操作）
+- 事件处理器中的错误
+
+查看实时日志：
+
+```bash
+tail -f ~/.local/share/opencode/memory/debug-events.log
+```
 
 ## 工作原理
 
@@ -120,6 +150,19 @@ ls ~/.local/share/opencode/memory/
 | `memory_delete` | 删除过时的记忆 |
 | `session_checkpoint` | 保存会话状态（压缩后存活） |
 
+## 自动提取模式
+
+Layer 3 使用启发式模式匹配检测用户消息中的可提取内容，支持中英文：
+
+| 类别 | 英文示例 | 中文示例 |
+|------|----------|----------|
+| **纠正** | "don't use X", "wrong approach", "use Y instead" | "不对", "别用", "请用X代替" |
+| **显式** | "remember that", "don't forget", "note that" | "请记住", "记住这个", "别忘了" |
+| **画像** | "I'm a senior engineer", "my team uses K8s" | "我是工程师", "我擅长", "我们团队用" |
+| **确认** | "yes exactly", "good job", "that's right" | "没错", "做得好", "这个方法很好" |
+
+消息通过 `message.part.updated` 事件缓冲，当 `session.idle` 触发且缓冲区 ≥ 6 条消息时执行提取。角色推断通过 `message.updated` 事件建立 messageID → role 映射。
+
 ## Hooks
 
 | Hook | 用途 |
@@ -127,8 +170,9 @@ ls ~/.local/share/opencode/memory/
 | `experimental.session.compacting` | 压缩时注入记忆索引 + 会话笔记到压缩上下文 |
 | `experimental.chat.system.transform` | 每轮 LLM 调用前注入记忆可用提示到系统提示 |
 | `event` (session.created) | 初始化记忆目录 |
-| `event` (session.idle) | 触发自动记忆提取 |
-| `event` (message.updated) | 追踪消息到提取缓冲区 |
+| `event` (session.idle) | 触发自动记忆提取（缓冲区 ≥ 6 时） |
+| `event` (message.updated) | 建立 messageID → role 映射 |
+| `event` (message.part.updated) | 缓冲 TextPart 文本内容用于提取 |
 
 ## AGENTS.md 集成
 
