@@ -11,7 +11,7 @@ export type SearchResult = {
 
 export function searchMemories(
   memoryDir: string,
-  query: string,
+  query?: string,
   type?: MemoryType,
 ): SearchResult[] {
   let candidates = scanMemoryFiles(memoryDir)
@@ -20,12 +20,18 @@ export function searchMemories(
     candidates = candidates.filter((m) => m.type === type)
   }
 
+  if (!query || query.trim().length === 0) {
+    return candidates.slice(0, 10).map((memory) => ({ memory, score: 0 }))
+  }
+
   const terms = query
     .toLowerCase()
     .split(/\s+/)
     .filter((t) => t.length > 0)
 
-  if (terms.length === 0) return []
+  if (terms.length === 0) {
+    return candidates.slice(0, 10).map((memory) => ({ memory, score: 0 }))
+  }
 
   const scored = candidates
     .map((memory) => ({
